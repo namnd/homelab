@@ -34,3 +34,44 @@ output "kubeconfig" {
   sensitive = true
 }
 
+# Worker nodes
+
+data "talos_machine_configuration" "worker" {
+  cluster_name     = data.talos_machine_configuration.cp.cluster_name
+  machine_type     = "worker"
+  cluster_endpoint = data.talos_machine_configuration.cp.cluster_endpoint
+  machine_secrets  = talos_machine_secrets.this.machine_secrets
+}
+
+resource "talos_machine_configuration_apply" "worker" {
+  count = length(var.worker_ips)
+
+  client_configuration        = talos_machine_secrets.this.client_configuration
+  machine_configuration_input = data.talos_machine_configuration.worker.machine_configuration
+  node                        = var.worker_ips[count.index]
+
+  config_patches = [
+    yamlencode({
+      machine = {
+        install = {
+          image = "factory.talos.dev/metal-installer/613e1592b2da41ae5e265e8789429f22e121aab91cb4deb6bc3c0b6262961245:v1.11.1"
+        }
+        kubelet = {
+          extraMounts = [
+            {
+              destination = "/var/lib/longhorn"
+              type        = "bind"
+              source      = "/var/lib/longhorn"
+              options = [
+                "bind",
+                "rshared",
+                "rw",
+              ]
+            }
+          ]
+        }
+      }
+    })
+  ]
+}
+
