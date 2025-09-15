@@ -64,3 +64,44 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "this" {
   }
 }
 
+resource "cloudflare_zero_trust_access_policy" "youtube_dl_access_policy" {
+  account_id = local.cloudflare_account_id
+  name       = "homelab"
+
+  decision         = "allow"
+  session_duration = "24h"
+  include = [
+    {
+      email = {
+        email = "me@namnd.com"
+      },
+    },
+    {
+      email = {
+        email = "namnd86@gmail.com"
+      }
+    }
+  ]
+}
+
+resource "cloudflare_zero_trust_access_application" "youtube_dl" {
+  account_id = local.cloudflare_account_id
+  name       = "homelab"
+  type       = "self_hosted"
+
+  destinations = [{
+    type = "public"
+    uri  = cloudflare_dns_record.youtube_dl.name
+  }]
+  session_duration           = "168h"
+  allowed_idps               = ["d7fef9ee-ff2c-4be4-930c-a86b416f8e41"] # Github
+  auto_redirect_to_identity  = true
+  enable_binding_cookie      = false
+  http_only_cookie_attribute = false
+  options_preflight_bypass   = false
+
+  policies = [{
+    id         = cloudflare_zero_trust_access_policy.youtube_dl_access_policy.id
+    precedence = 1
+  }]
+}
