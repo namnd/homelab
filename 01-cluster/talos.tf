@@ -44,14 +44,14 @@ data "talos_machine_configuration" "worker" {
 }
 
 resource "talos_machine_configuration_apply" "worker" {
-  count = length(var.worker_ips)
+  for_each = var.worker_nodes
 
   client_configuration        = talos_machine_secrets.this.client_configuration
   machine_configuration_input = data.talos_machine_configuration.worker.machine_configuration
-  node                        = var.worker_ips[count.index]
+  node                        = each.key
 
   config_patches = [
-    yamlencode({
+    yamlencode(provider::deepmerge::mergo({
       machine = {
         install = {
           image = "factory.talos.dev/metal-installer/613e1592b2da41ae5e265e8789429f22e121aab91cb4deb6bc3c0b6262961245:v1.11.1"
@@ -71,7 +71,7 @@ resource "talos_machine_configuration_apply" "worker" {
           ]
         }
       }
-    })
+    }, each.value))
   ]
 }
 

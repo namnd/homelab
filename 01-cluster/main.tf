@@ -4,6 +4,9 @@ terraform {
       source  = "siderolabs/talos"
       version = "0.9.0-alpha.0"
     }
+    deepmerge = {
+      source = "isometry/deepmerge"
+    }
   }
 
   backend "s3" {
@@ -17,3 +20,5 @@ terraform {
 provider "aws" {
   region = "ap-southeast-2"
 }
+
+provider "deepmerge" {}
