@@ -41,5 +41,26 @@ resource "helm_release" "cloudflare_tunnel" {
       value = jsondecode(data.http.tunnel_token.response_body)["result"]
     },
   ]
-
 }
+
+resource "cloudflare_zero_trust_tunnel_cloudflared_config" "this" {
+  tunnel_id  = cloudflare_zero_trust_tunnel_cloudflared.this.id
+  account_id = local.cloudflare_account_id
+
+  config = {
+    ingress = [
+      {
+        hostname = cloudflare_dns_record.navidrome.name
+        service  = "http://${helm_release.navidrome.name}.${helm_release.navidrome.namespace}.svc.cluster.local:4533"
+      },
+      {
+        hostname = cloudflare_dns_record.youtube_dl.name
+        service  = "http://${helm_release.youtube_dl.name}.${helm_release.navidrome.namespace}.svc.cluster.local:8080"
+      },
+      {
+        service = "http_status:404"
+      }
+    ]
+  }
+}
+
