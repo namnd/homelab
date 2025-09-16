@@ -53,11 +53,23 @@ resource "cloudflare_dns_record" "navidrome" {
   content = "${cloudflare_zero_trust_tunnel_cloudflared.this.id}.cfargotunnel.com"
 }
 
+resource "kubernetes_config_map_v1" "youtube_dl_config" {
+  metadata {
+    name      = "youtube-dl-config"
+    namespace = kubernetes_namespace.navidrome.id
+  }
+
+  data = {
+    "args.conf"    = file("${path.module}/youtube-dl-config/args.conf")
+    "channels.txt" = file("${path.module}/youtube-dl-config/channels.txt")
+  }
+}
+
 resource "helm_release" "youtube_dl" {
   name       = "youtube-dl"
   repository = "https://namnd.github.io/helm-charts"
   chart      = "youtube-dl"
-  version    = "0.1.0"
+  version    = "0.2.0"
 
   create_namespace = false
   namespace        = kubernetes_namespace.navidrome.id
@@ -82,7 +94,15 @@ resource "helm_release" "youtube_dl" {
     {
       name  = "persistence.downloads.existingClaim"
       value = kubernetes_persistent_volume_claim_v1.music_data.metadata[0].name
-    }
+    },
+    {
+      name  = "config.enabled"
+      value = true
+    },
+    {
+      name  = "config.configMap"
+      value = kubernetes_config_map_v1.youtube_dl_config.metadata[0].name
+    },
   ]
 }
 
