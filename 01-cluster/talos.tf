@@ -1,23 +1,31 @@
 resource "talos_machine_secrets" "this" {}
 
-data "talos_machine_configuration" "cp" {
+data "talos_machine_configuration" "this" {
   cluster_name     = "namnd-homelab"
   machine_type     = "controlplane"
-  cluster_endpoint = "https://${var.control_plane_ip}:6443"
+  cluster_endpoint = "https://${var.cluster_endpoint}:6443"
   machine_secrets  = talos_machine_secrets.this.machine_secrets
 }
 
-resource "talos_machine_configuration_apply" "cp" {
+resource "talos_machine_configuration_apply" "control_plane" {
+  for_each = var.control_plane_nodes
+
   client_configuration        = talos_machine_secrets.this.client_configuration
-  machine_configuration_input = data.talos_machine_configuration.cp.machine_configuration
-  node                        = var.control_plane_ip
+  machine_configuration_input = data.talos_machine_configuration.this.machine_configuration
+  node                        = each.key
+
+  config_patches = [
+    yamlencode(provider::deepmerge::mergo({}, each.value))
+  ]
 }
 
 resource "talos_machine_bootstrap" "this" {
+  for_each = var.control_plane_nodes
+
   depends_on = [
-    talos_machine_configuration_apply.cp
+    talos_machine_configuration_apply.control_plane
   ]
-  node                 = var.control_plane_ip
+  node                 = each.key
   client_configuration = talos_machine_secrets.this.client_configuration
 }
 
@@ -26,7 +34,7 @@ resource "talos_cluster_kubeconfig" "this" {
     talos_machine_bootstrap.this
   ]
   client_configuration = talos_machine_secrets.this.client_configuration
-  node                 = var.control_plane_ip
+  node                 = var.cluster_endpoint
 }
 
 output "kubeconfig" {
@@ -37,9 +45,9 @@ output "kubeconfig" {
 # Worker nodes
 
 data "talos_machine_configuration" "worker" {
-  cluster_name     = data.talos_machine_configuration.cp.cluster_name
+  cluster_name     = data.talos_machine_configuration.this.cluster_name
   machine_type     = "worker"
-  cluster_endpoint = data.talos_machine_configuration.cp.cluster_endpoint
+  cluster_endpoint = data.talos_machine_configuration.this.cluster_endpoint
   machine_secrets  = talos_machine_secrets.this.machine_secrets
 }
 
