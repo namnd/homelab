@@ -43,24 +43,43 @@ resource "helm_release" "cloudflare_tunnel" {
   ]
 }
 
+locals {
+  dns_records = {
+    "audio" = "http://navidrome.navidrome.svc.cluster.local:4533"
+    "y"     = "http://youtube-dl.navidrome.svc.cluster.local:8080"
+    "o"     = "http://grafana.monitoring.svc.cluster.local"
+  }
+}
+
+resource "cloudflare_dns_record" "cname" {
+  for_each = local.dns_records
+
+  zone_id = data.cloudflare_zone.this.zone_id
+  name    = "${each.key}.${data.cloudflare_zone.this.name}"
+  ttl     = 1
+  proxied = true
+  type    = "CNAME"
+  content = "${cloudflare_zero_trust_tunnel_cloudflared.this.id}.cfargotunnel.com"
+}
+
 resource "cloudflare_zero_trust_tunnel_cloudflared_config" "this" {
   tunnel_id  = cloudflare_zero_trust_tunnel_cloudflared.this.id
   account_id = local.cloudflare_account_id
 
   config = {
-    ingress = [
-      {
-        hostname = cloudflare_dns_record.navidrome.name
-        service  = "http://${helm_release.navidrome.name}.${helm_release.navidrome.namespace}.svc.cluster.local:4533"
-      },
-      {
-        hostname = cloudflare_dns_record.youtube_dl.name
-        service  = "http://${helm_release.youtube_dl.name}.${helm_release.navidrome.namespace}.svc.cluster.local:8080"
-      },
-      {
-        service = "http_status:404"
-      }
-    ]
+    ingress = concat(
+      [for k, v in local.dns_records :
+        {
+          hostname = "${k}.${data.cloudflare_zone.this.name}",
+          service  = v,
+        }
+      ],
+      [
+        {
+          service = "http_status:404"
+        }
+      ]
+    )
   }
 }
 
@@ -91,7 +110,7 @@ resource "cloudflare_zero_trust_access_application" "youtube_dl" {
 
   destinations = [{
     type = "public"
-    uri  = cloudflare_dns_record.youtube_dl.name
+    uri  = cloudflare_dns_record.cname["y"].name
   }]
   session_duration           = "168h"
   allowed_idps               = ["d7fef9ee-ff2c-4be4-930c-a86b416f8e41"] # Github

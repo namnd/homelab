@@ -44,15 +44,6 @@ resource "helm_release" "navidrome" {
   ]
 }
 
-resource "cloudflare_dns_record" "navidrome" {
-  zone_id = data.cloudflare_zone.this.zone_id
-  name    = "audio.${data.cloudflare_zone.this.name}"
-  ttl     = 1
-  proxied = true
-  type    = "CNAME"
-  content = "${cloudflare_zero_trust_tunnel_cloudflared.this.id}.cfargotunnel.com"
-}
-
 resource "kubernetes_config_map_v1" "youtube_dl_config" {
   metadata {
     name      = "youtube-dl-config"
@@ -105,13 +96,3 @@ resource "helm_release" "youtube_dl" {
     },
   ]
 }
-
-resource "cloudflare_dns_record" "youtube_dl" {
-  zone_id = data.cloudflare_zone.this.zone_id
-  name    = "y.${data.cloudflare_zone.this.name}"
-  ttl     = 1
-  proxied = true
-  type    = "CNAME"
-  content = "${cloudflare_zero_trust_tunnel_cloudflared.this.id}.cfargotunnel.com"
-}
-
