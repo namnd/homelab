@@ -37,9 +37,9 @@ resource "talos_cluster_kubeconfig" "this" {
   node                 = var.cluster_endpoint
 }
 
-output "kubeconfig" {
-  value     = talos_cluster_kubeconfig.this.kubeconfig_raw
-  sensitive = true
+resource "local_file" "kubeconfig" {
+  content  = talos_cluster_kubeconfig.this.kubeconfig_raw
+  filename = pathexpand("~/.kube/config")
 }
 
 # Worker nodes
