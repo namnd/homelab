@@ -9,6 +9,7 @@ create_vm() {
   local cpus=${5:-2}          # Default CPUs
 
   local iso_path="$HOME/Downloads/metal-amd64-v1.11.1.iso"  # Hardcoded ISO path
+  local data_path="/data/VirtualBoxVMs/"
 
   echo "Creating VM: $name with size ${size}MB, memory ${memory}MB, CPUs $cpus, network $network"
 
@@ -20,8 +21,8 @@ create_vm() {
   VBoxManage storageattach "${name}" --storagectl "IDE Controller" --port 1 --device 0 --type dvddrive --medium "${iso_path}"
 
   VBoxManage storagectl "${name}" --name "SATA Controller" --add sata --controller IntelAHCI --portcount 1 --bootable on
-  VBoxManage createhd --filename "$HOME/VirtualBoxVMs/${name}/${name}.vdi" --size "${size}"
-  VBoxManage storageattach "${name}" --storagectl "SATA Controller" --port 0 --device 0 --type hdd --medium "$HOME/VirtualBoxVMs/${name}/${name}.vdi"
+  VBoxManage createhd --filename "${data_path}/${name}/${name}.vdi" --size "${size}"
+  VBoxManage storageattach "${name}" --storagectl "SATA Controller" --port 0 --device 0 --type hdd --medium "${data_path}/${name}/${name}.vdi"
 }
 
 # Create control plane node
