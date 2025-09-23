@@ -1,7 +1,3 @@
-locals {
-  cloudflare_account_id = "b45e6b6ab8976d9189ad6e38d29e44b1"
-}
-
 data "cloudflare_zone" "this" {
   filter = {
     account = {
@@ -48,6 +44,7 @@ locals {
     "audio" = "http://navidrome.navidrome.svc.cluster.local:4533"
     "y"     = "http://youtube-dl.navidrome.svc.cluster.local:8080"
     "o"     = "http://grafana.monitoring.svc.cluster.local"
+    "v"     = "http://vpn.vpn.svc.cluster.local:8080"
   }
 }
 
@@ -108,10 +105,16 @@ resource "cloudflare_zero_trust_access_application" "youtube_dl" {
   name       = "homelab"
   type       = "self_hosted"
 
-  destinations = [{
-    type = "public"
-    uri  = cloudflare_dns_record.cname["y"].name
-  }]
+  destinations = [
+    {
+      type = "public"
+      uri  = cloudflare_dns_record.cname["y"].name
+    },
+    {
+      type = "public"
+      uri  = cloudflare_dns_record.cname["v"].name
+    },
+  ]
   session_duration           = "168h"
   allowed_idps               = ["d7fef9ee-ff2c-4be4-930c-a86b416f8e41"] # Github
   auto_redirect_to_identity  = true
