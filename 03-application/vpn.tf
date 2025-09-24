@@ -120,7 +120,7 @@ resource "kubernetes_manifest" "root_ca_cert" {
 
     spec = {
       commonName = "VPN root CA"
-      duration   = "24h0m0s"
+      duration   = "2160h"
       issuerRef = {
         group = "cert-manager.io"
         kind  = "Issuer"
