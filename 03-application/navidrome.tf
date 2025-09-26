@@ -68,7 +68,7 @@ resource "helm_release" "youtube_dl" {
   set = [
     {
       name  = "image.tag"
-      value = "v2025.09.05"
+      value = "v2025.09.23"
     },
     {
       name  = "env[0].name"
