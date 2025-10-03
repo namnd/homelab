@@ -26,7 +26,7 @@ create_vm() {
 }
 
 # Create control plane node
-create_vm "control-plane" 20480
+# create_vm "control-plane" 20480
 # Create worker nodes
-create_vm "worker-1" 102400
-create_vm "worker-2" 102400
+# create_vm "namnd-homelab-worker-1" 204800
+create_vm "namnd-homelab-worker-2" 204800 wlp3s0 8192 4
