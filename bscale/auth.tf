@@ -31,3 +31,35 @@ resource "helm_release" "oauth2" {
   ]
 }
 
+resource "kubernetes_ingress_v1" "auth_ingress" {
+  metadata {
+    name      = "auth"
+    namespace = local.namespace
+    annotations = {
+      "external-dns.alpha.kubernetes.io/cloudflare-proxied" = "true"
+      "external-dns.alpha.kubernetes.io/hostname"           = "auth.bscale.io"
+      "external-dns.alpha.kubernetes.io/target"             = "${cloudflare_zero_trust_tunnel_cloudflared.this.id}.cfargotunnel.com"
+    }
+  }
+
+  spec {
+    ingress_class_name = "nginx"
+    rule {
+      host = "auth.bscale.io"
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = "oauth2-proxy"
+              port {
+                number = 80
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
