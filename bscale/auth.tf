@@ -35,11 +35,6 @@ resource "kubernetes_ingress_v1" "auth_ingress" {
   metadata {
     name      = "auth"
     namespace = local.namespace
-    annotations = {
-      "external-dns.alpha.kubernetes.io/cloudflare-proxied" = "true"
-      "external-dns.alpha.kubernetes.io/hostname"           = "auth.bscale.io"
-      "external-dns.alpha.kubernetes.io/target"             = "${cloudflare_zero_trust_tunnel_cloudflared.this.id}.cfargotunnel.com"
-    }
   }
 
   spec {
