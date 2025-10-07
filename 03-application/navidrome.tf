@@ -44,6 +44,34 @@ resource "helm_release" "navidrome" {
   ]
 }
 
+resource "kubernetes_ingress_v1" "navidrome_ingress" {
+  metadata {
+    name      = "navidrome"
+    namespace = kubernetes_namespace.navidrome.id
+  }
+
+  spec {
+    ingress_class_name = "nginx"
+    rule {
+      host = "audio.namnd.com"
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = "navidrome"
+              port {
+                number = 4533
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
 resource "kubernetes_config_map_v1" "youtube_dl_config" {
   metadata {
     name      = "youtube-dl-config"
@@ -96,3 +124,32 @@ resource "helm_release" "youtube_dl" {
     },
   ]
 }
+
+resource "kubernetes_ingress_v1" "youtube_dl_ingress" {
+  metadata {
+    name      = "youtube-dl"
+    namespace = kubernetes_namespace.navidrome.id
+  }
+
+  spec {
+    ingress_class_name = "nginx"
+    rule {
+      host = "y.namnd.com"
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = "youtube-dl"
+              port {
+                number = 8080
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+

@@ -34,3 +34,31 @@ resource "helm_release" "prometheus" {
   create_namespace = false
   namespace        = kubernetes_namespace.monitoring.id
 }
+
+resource "kubernetes_ingress_v1" "grafana_ingress" {
+  metadata {
+    name      = "grafana"
+    namespace = kubernetes_namespace.monitoring.id
+  }
+
+  spec {
+    ingress_class_name = "nginx"
+    rule {
+      host = "o.namnd.com"
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = "grafana"
+              port {
+                number = 80
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

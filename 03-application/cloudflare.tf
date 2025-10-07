@@ -39,20 +39,9 @@ resource "helm_release" "cloudflare_tunnel" {
   ]
 }
 
-locals {
-  dns_records = {
-    "audio" = "http://navidrome.navidrome.svc.cluster.local:4533"
-    "y"     = "http://youtube-dl.navidrome.svc.cluster.local:8080"
-    "o"     = "http://grafana.monitoring.svc.cluster.local"
-    "v"     = "http://vpn.vpn.svc.cluster.local:8080"
-  }
-}
-
-resource "cloudflare_dns_record" "cname" {
-  for_each = local.dns_records
-
+resource "cloudflare_dns_record" "wildcard" {
   zone_id = data.cloudflare_zone.this.zone_id
-  name    = "${each.key}.${data.cloudflare_zone.this.name}"
+  name    = "*.${data.cloudflare_zone.this.name}"
   ttl     = 1
   proxied = true
   type    = "CNAME"
@@ -64,19 +53,15 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "this" {
   account_id = local.cloudflare_account_id
 
   config = {
-    ingress = concat(
-      [for k, v in local.dns_records :
-        {
-          hostname = "${k}.${data.cloudflare_zone.this.name}",
-          service  = v,
-        }
-      ],
-      [
-        {
-          service = "http_status:404"
-        }
-      ]
-    )
+    ingress = [
+      {
+        hostname = "*.${data.cloudflare_zone.this.name}",
+        service  = "http://ingress-nginx-controller.ingress-nginx.svc.cluster.local",
+      },
+      {
+        service = "http_status:404"
+      }
+    ]
   }
 }
 
@@ -108,11 +93,11 @@ resource "cloudflare_zero_trust_access_application" "youtube_dl" {
   destinations = [
     {
       type = "public"
-      uri  = cloudflare_dns_record.cname["y"].name
+      uri  = "y.namnd.com"
     },
     {
       type = "public"
-      uri  = cloudflare_dns_record.cname["v"].name
+      uri  = "v.namnd.com"
     },
   ]
   session_duration           = "168h"

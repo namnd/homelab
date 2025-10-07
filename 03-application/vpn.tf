@@ -174,3 +174,32 @@ resource "helm_release" "vpn" {
     },
   ]
 }
+
+resource "kubernetes_ingress_v1" "vpn" {
+  metadata {
+    name      = "vpn"
+    namespace = kubernetes_namespace.vpn.id
+  }
+
+  spec {
+    ingress_class_name = "nginx"
+    rule {
+      host = "v.namnd.com"
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = "vpn"
+              port {
+                number = 8080
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
