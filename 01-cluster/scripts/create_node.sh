@@ -15,7 +15,7 @@ create_vm() {
 
   VBoxManage createvm --name "${name}" --ostype "Linux_64" --register
 
-  VBoxManage modifyvm "${name}" --memory "$memory" --cpus "$cpus" --nic1 bridged --bridgeadapter1 "${network}"
+  VBoxManage modifyvm "${name}" --memory "$memory" --cpus "$cpus" --nic1 bridged --bridgeadapter1 "${network}" --nic-promisc1 allow-all
 
   VBoxManage storagectl "${name}" --name "IDE Controller" --add ide --controller PIIX4
   VBoxManage storageattach "${name}" --storagectl "IDE Controller" --port 1 --device 0 --type dvddrive --medium "${iso_path}"
@@ -26,7 +26,7 @@ create_vm() {
 }
 
 # Create control plane node
-# create_vm "control-plane" 20480
+create_vm "homelab-control-plane" 20480
 # Create worker nodes
-# create_vm "namnd-homelab-worker-1" 204800
-create_vm "namnd-homelab-worker-2" 204800 wlp3s0 8192 4
+create_vm "homelab-worker-1" 204800 wlp3s0 8192 4
+create_vm "homelab-worker-2" 204800 wlp3s0 8192 4

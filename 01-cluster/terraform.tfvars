@@ -1,24 +1,13 @@
-cluster_endpoint = "192.168.0.156"
+cluster_endpoint = "192.168.0.186"
 
 control_plane_nodes = {
-  "192.168.0.156" = {
+  "192.168.0.186" = {
     machine = {
-      install = {
-        disk = "/dev/sdc"
-      }
     }
   }
 }
 
 worker_nodes = {
-  "192.168.0.118" = {}
-  "192.168.0.172" = {}
-
-  "192.168.0.84" = {
-    machine = {
-      install = {
-        disk = "/dev/nvme0n1"
-      }
-    }
-  }
+  "192.168.0.144" = {}
+  "192.168.0.253" = {}
 }
