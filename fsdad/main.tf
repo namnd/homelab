@@ -65,6 +65,10 @@ resource "helm_release" "url_scraper" {
       value = var.cloudflare_api_token
     },
     {
+      name  = "image.pullPolicy"
+      value = "Always"
+    },
+    {
       name  = "service.port"
       value = "8080"
     }
