@@ -153,6 +153,10 @@ resource "helm_release" "vpn" {
 
   set = [
     {
+      name  = "image.pullPolicy"
+      value = "Always"
+    },
+    {
       name  = "tailscaleAuthKey"
       value = tailscale_tailnet_key.this.key
     },
