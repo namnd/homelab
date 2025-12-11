@@ -153,3 +153,47 @@ resource "kubernetes_ingress_v1" "youtube_dl_ingress" {
   }
 }
 
+resource "helm_release" "jellyfin" {
+  name       = "jellyfin"
+  repository = "https://jellyfin.github.io/jellyfin-helm"
+  chart      = "jellyfin"
+  version    = "2.6.0"
+
+  create_namespace = false
+  namespace        = kubernetes_namespace.navidrome.id
+
+  set = [
+    {
+      name  = "persistence.media.existingClaim"
+      value = kubernetes_persistent_volume_claim_v1.music_data.metadata[0].name
+    }
+  ]
+}
+
+resource "kubernetes_ingress_v1" "jellyfin_ingress" {
+  metadata {
+    name      = "jellyfin"
+    namespace = kubernetes_namespace.navidrome.id
+  }
+
+  spec {
+    ingress_class_name = "nginx"
+    rule {
+      host = "video.namnd.com"
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = "jellyfin"
+              port {
+                number = 8096
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
