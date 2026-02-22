@@ -146,7 +146,7 @@ resource "helm_release" "vpn" {
   name       = "vpn"
   repository = "https://namnd.github.io/helm-charts"
   chart      = "vpn"
-  version    = "0.3.0"
+  version    = "0.4.0"
 
   create_namespace = false
   namespace        = kubernetes_namespace.vpn.id
@@ -159,6 +159,10 @@ resource "helm_release" "vpn" {
     {
       name  = "tailscaleAuthKey"
       value = tailscale_tailnet_key.this.key
+    },
+    {
+      name  = "keyName"
+      value = "namnd"
     },
     {
       name  = "iamra.trustAnchorArn"
