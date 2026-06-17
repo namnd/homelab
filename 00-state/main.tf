@@ -3,7 +3,7 @@ provider "aws" {
 }
 
 resource "aws_s3_bucket" "this" {
-  bucket = "namnd-homelab"
+  bucket = "namnd-homelab-2026"
 }
 
 resource "aws_s3_bucket_versioning" "this" {
