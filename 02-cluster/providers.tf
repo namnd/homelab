@@ -13,7 +13,6 @@ terraform {
       source  = "hashicorp/local"
       version = "2.9.0"
     }
-
   }
 
   backend "s3" {

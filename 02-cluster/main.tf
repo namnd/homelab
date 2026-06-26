@@ -12,7 +12,7 @@ locals {
   control_plane_ip = data.terraform_remote_state.nodes.outputs.control_plane_ip
   worker_ips       = data.terraform_remote_state.nodes.outputs.worker_ips
   image            = format("factory.talos.dev/metal-installer/%s:%s", data.terraform_remote_state.nodes.outputs.talos_image_factory_schematic_id, var.talos_version)
-
+  kubeconfig_path  = pathexpand("~/.kube/config-${var.cluster_name}")
 }
 
 resource "talos_machine_secrets" "this" {}
@@ -98,5 +98,5 @@ resource "talos_cluster_kubeconfig" "this" {
 
 resource "local_file" "kubeconfig" {
   content  = talos_cluster_kubeconfig.this.kubeconfig_raw
-  filename = pathexpand("~/.kube/config-${var.cluster_name}")
+  filename = local.kubeconfig_path
 }
