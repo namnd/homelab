@@ -127,6 +127,10 @@ resource "virtualbox_vm_storage_attachment" "iso_attachment" {
     virtualbox_vm.this,
     terraform_data.download_iso_image,
   ]
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 resource "virtualbox_vm_storage_attachment" "hdd_attachment" {
