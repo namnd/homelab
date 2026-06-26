@@ -155,11 +155,3 @@ resource "virtualbox_vm_ip_address" "this" {
     virtualbox_vm_storage_attachment.hdd_attachment,
   ]
 }
-
-output "control_plane_ip" {
-  value = virtualbox_vm_ip_address.this["cp"].ip_address
-}
-
-output "worker_ips" {
-  value = [for k, v in local.nodes : virtualbox_vm_ip_address.this[k].ip_address if v.role == "worker"]
-}

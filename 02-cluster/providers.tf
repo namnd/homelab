@@ -2,16 +2,23 @@ terraform {
   required_providers {
     talos = {
       source  = "siderolabs/talos"
-      version = "0.9.0-alpha.0"
+      version = "0.12.0-alpha.4"
     }
+
     deepmerge = {
       source = "isometry/deepmerge"
     }
+
+    local = {
+      source  = "hashicorp/local"
+      version = "2.9.0"
+    }
+
   }
 
   backend "s3" {
-    bucket       = "namnd-homelab"
-    key          = "01-cluster.tfstate"
+    bucket       = "namnd-homelab-2026"
+    key          = "02-cluster.tfstate"
     region       = "ap-southeast-2"
     use_lockfile = true
   }
@@ -22,3 +29,4 @@ provider "aws" {
 }
 
 provider "deepmerge" {}
+provider "local" {}
