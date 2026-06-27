@@ -3,13 +3,13 @@ data "cloudflare_zone" "this" {
     account = {
       id = local.cloudflare_account_id
     }
-    name = "namnd.com"
+    name = local.domain
   }
 }
 
 resource "cloudflare_zero_trust_tunnel_cloudflared" "this" {
   account_id = local.cloudflare_account_id
-  name       = "namnd-homelab"
+  name       = var.cluster_name
   config_src = "cloudflare"
 }
 
@@ -39,15 +39,6 @@ resource "helm_release" "cloudflare_tunnel" {
   ]
 }
 
-resource "cloudflare_dns_record" "wildcard" {
-  zone_id = data.cloudflare_zone.this.zone_id
-  name    = "*.${data.cloudflare_zone.this.name}"
-  ttl     = 1
-  proxied = true
-  type    = "CNAME"
-  content = "${cloudflare_zero_trust_tunnel_cloudflared.this.id}.cfargotunnel.com"
-}
-
 resource "cloudflare_zero_trust_tunnel_cloudflared_config" "this" {
   tunnel_id  = cloudflare_zero_trust_tunnel_cloudflared.this.id
   account_id = local.cloudflare_account_id
@@ -65,9 +56,9 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "this" {
   }
 }
 
-resource "cloudflare_zero_trust_access_policy" "youtube_dl_access_policy" {
+resource "cloudflare_zero_trust_access_policy" "this" {
   account_id = local.cloudflare_account_id
-  name       = "homelab"
+  name       = var.cluster_name
 
   decision         = "allow"
   session_duration = "24h"
@@ -85,19 +76,15 @@ resource "cloudflare_zero_trust_access_policy" "youtube_dl_access_policy" {
   ]
 }
 
-resource "cloudflare_zero_trust_access_application" "youtube_dl" {
+resource "cloudflare_zero_trust_access_application" "this" {
   account_id = local.cloudflare_account_id
-  name       = "homelab"
+  name       = var.cluster_name
   type       = "self_hosted"
 
   destinations = [
     {
       type = "public"
-      uri  = "y.namnd.com"
-    },
-    {
-      type = "public"
-      uri  = "v.namnd.com"
+      uri  = "${local.vpn_subdomain}.${local.domain}"
     },
   ]
   session_duration           = "168h"
@@ -108,7 +95,16 @@ resource "cloudflare_zero_trust_access_application" "youtube_dl" {
   options_preflight_bypass   = false
 
   policies = [{
-    id         = cloudflare_zero_trust_access_policy.youtube_dl_access_policy.id
+    id         = cloudflare_zero_trust_access_policy.this.id
     precedence = 1
   }]
+}
+
+resource "cloudflare_dns_record" "wildcard" {
+  zone_id = data.cloudflare_zone.this.zone_id
+  name    = "*.${data.cloudflare_zone.this.name}"
+  ttl     = 1
+  proxied = true
+  type    = "CNAME"
+  content = "${cloudflare_zero_trust_tunnel_cloudflared.this.id}.cfargotunnel.com"
 }

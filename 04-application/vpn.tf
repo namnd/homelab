@@ -1,3 +1,7 @@
+###############################################################################
+# TLS Certificate
+###############################################################################
+
 resource "tls_private_key" "root_ca_key" {
   algorithm = "RSA"
   rsa_bits  = 2048
@@ -13,7 +17,7 @@ resource "tls_self_signed_cert" "root_ca" {
     province            = "Queensland"
     locality            = "Brisbane"
     organization        = "namnd"
-    organizational_unit = "homelab"
+    organizational_unit = "homelab-2026"
     common_name         = "VPN root CA"
   }
 
@@ -26,8 +30,12 @@ resource "tls_self_signed_cert" "root_ca" {
   ]
 }
 
+###############################################################################
+# IAM Roles Anywhere
+###############################################################################
+
 resource "aws_rolesanywhere_trust_anchor" "this" {
-  name    = "namnd-homelab"
+  name    = var.cluster_name
   enabled = true
 
   source {
@@ -62,28 +70,56 @@ data "aws_iam_policy_document" "assume_role_anywhere" {
 }
 
 resource "aws_iam_role" "vpn" {
-  name = "namnd-homelab-vpn"
+  name = "${var.cluster_name}-vpn"
 
   assume_role_policy = data.aws_iam_policy_document.assume_role_anywhere.json
+}
+
+resource "aws_iam_role_policy" "ec2_policy" {
+  name = "create-ec2-policy"
+  role = aws_iam_role.vpn.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "ec2:TerminateInstances",
+          "ec2:StopInstances",
+          "ec2:StartInstances",
+          "ec2:RunInstances",
+          "ec2:DescribeInstances",
+          "ec2:DescribeImages",
+          "ec2:CreateTags"
+        ]
+        Effect   = "Allow"
+        Resource = "*"
+      },
+    ]
+  })
 }
 
 resource "aws_rolesanywhere_profile" "vpn" {
   enabled = true
 
-  name      = "namnd-homelab"
+  name      = var.cluster_name
   role_arns = [aws_iam_role.vpn.arn]
 }
 
-resource "kubernetes_namespace" "vpn" {
+###############################################################################
+# K8s resources
+###############################################################################
+
+resource "kubernetes_namespace_v1" "vpn" {
   metadata {
     name = "vpn"
   }
 }
 
-resource "kubernetes_secret" "root_ca" {
+resource "kubernetes_secret_v1" "root_ca" {
   metadata {
-    name      = "namnd-homelab-iamra-ca"
-    namespace = kubernetes_namespace.vpn.id
+    name      = "${var.cluster_name}-iamra-ca"
+    namespace = kubernetes_namespace_v1.vpn.id
   }
 
   data = {
@@ -97,16 +133,20 @@ resource "kubernetes_manifest" "root_ca_issuer" {
     apiVersion = "cert-manager.io/v1"
     kind       = "Issuer"
     metadata = {
-      name      = "namnd-homelab-ca-issuer"
-      namespace = kubernetes_namespace.vpn.id
+      name      = "${var.cluster_name}-ca-issuer"
+      namespace = kubernetes_namespace_v1.vpn.id
     }
 
     spec = {
       ca = {
-        secretName = kubernetes_secret.root_ca.metadata[0].name
+        secretName = kubernetes_secret_v1.root_ca.metadata[0].name
       }
     }
   }
+}
+
+locals {
+  iamra_cert_secret_name = "${var.cluster_name}-iamra-cert"
 }
 
 resource "kubernetes_manifest" "root_ca_cert" {
@@ -114,8 +154,8 @@ resource "kubernetes_manifest" "root_ca_cert" {
     apiVersion = "cert-manager.io/v1"
     kind       = "Certificate"
     metadata = {
-      name      = "namnd-homelab-ca-cert"
-      namespace = kubernetes_namespace.vpn.id
+      name      = "${var.cluster_name}-ca-cert"
+      namespace = kubernetes_namespace_v1.vpn.id
     }
 
     spec = {
@@ -124,9 +164,9 @@ resource "kubernetes_manifest" "root_ca_cert" {
       issuerRef = {
         group = "cert-manager.io"
         kind  = "Issuer"
-        name  = "namnd-homelab-ca-issuer"
+        name  = "${var.cluster_name}-ca-issuer"
       }
-      secretName = "namnd-homelab-iamra-cert"
+      secretName = local.iamra_cert_secret_name
       privateKey = {
         algorithm = "RSA"
         size      = 2048
@@ -139,17 +179,17 @@ resource "tailscale_tailnet_key" "this" {
   reusable      = true
   ephemeral     = true
   preauthorized = false
-  description   = "namnd-homelab auth key"
+  description   = "${var.cluster_name} auth key"
 }
 
 resource "helm_release" "vpn" {
   name       = "vpn"
   repository = "https://namnd.github.io/helm-charts"
   chart      = "vpn"
-  version    = "0.4.0"
+  version    = "0.3.0"
 
   create_namespace = false
-  namespace        = kubernetes_namespace.vpn.id
+  namespace        = kubernetes_namespace_v1.vpn.id
 
   set = [
     {
@@ -159,10 +199,6 @@ resource "helm_release" "vpn" {
     {
       name  = "tailscaleAuthKey"
       value = tailscale_tailnet_key.this.key
-    },
-    {
-      name  = "keyName"
-      value = "namnd"
     },
     {
       name  = "iamra.trustAnchorArn"
@@ -178,7 +214,7 @@ resource "helm_release" "vpn" {
     },
     {
       name  = "iamra.certSecretName"
-      value = "namnd-homelab-iamra-cert"
+      value = local.iamra_cert_secret_name
     },
   ]
 }
@@ -186,13 +222,13 @@ resource "helm_release" "vpn" {
 resource "kubernetes_ingress_v1" "vpn" {
   metadata {
     name      = "vpn"
-    namespace = kubernetes_namespace.vpn.id
+    namespace = kubernetes_namespace_v1.vpn.id
   }
 
   spec {
     ingress_class_name = "nginx"
     rule {
-      host = "v.namnd.com"
+      host = "${local.vpn_subdomain}.${local.domain}"
       http {
         path {
           path      = "/"
