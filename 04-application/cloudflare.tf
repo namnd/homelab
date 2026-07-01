@@ -86,6 +86,10 @@ resource "cloudflare_zero_trust_access_application" "this" {
       type = "public"
       uri  = "${local.vpn_subdomain}.${local.domain}"
     },
+    {
+      type = "public"
+      uri  = "${local.youtube_dl_subdomain}.${local.domain}"
+    },
   ]
   session_duration           = "168h"
   allowed_idps               = ["d7fef9ee-ff2c-4be4-930c-a86b416f8e41"] # Github
