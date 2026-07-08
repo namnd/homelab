@@ -8,18 +8,28 @@ locals {
       cpus      = 2
       memory    = 4096
       disk_size = 20480
+      status    = "installed"
     }
     "w1" = {
       role      = "worker"
       cpus      = 4
       memory    = 4096
       disk_size = 204800
+      status    = "installed"
     }
     "w2" = {
       role      = "worker"
       cpus      = 4
       memory    = 4096
       disk_size = 204800
+      status    = "installed"
+    }
+    "w3" = {
+      role      = "worker"
+      cpus      = 4
+      memory    = 4096
+      disk_size = 204800
+      status    = "installed"
     }
   }
 }
@@ -114,7 +124,7 @@ resource "virtualbox_vm" "this" {
 }
 
 resource "virtualbox_vm_storage_attachment" "iso_attachment" {
-  for_each = virtualbox_vm.this
+  for_each = { for k, v in virtualbox_vm.this : k => v if local.nodes[k].status != "installed" }
 
   vm_id           = each.value.id
   controller_name = "IDE Controller"
@@ -127,10 +137,6 @@ resource "virtualbox_vm_storage_attachment" "iso_attachment" {
     virtualbox_vm.this,
     terraform_data.download_iso_image,
   ]
-
-  lifecycle {
-    ignore_changes = all
-  }
 }
 
 resource "virtualbox_vm_storage_attachment" "hdd_attachment" {
