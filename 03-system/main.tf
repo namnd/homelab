@@ -69,3 +69,45 @@ resource "helm_release" "longhorn" {
   create_namespace = false
   namespace        = kubernetes_namespace_v1.longhorn.id
 }
+
+resource "kubernetes_storage_class_v1" "cnpg" {
+  metadata {
+    name = "longhorn-cnpg"
+  }
+
+  storage_provisioner    = "driver.longhorn.io"
+  allow_volume_expansion = true
+
+  parameters = {
+    number_of_replicas    = "1"
+    stale_replica_timeout = "2880" # 48 hours
+    from_backup           = ""
+    fs_type               = "ext4"
+    data_locality         = "strict-local" # Critical for performance
+  }
+
+  depends_on = [
+    helm_release.longhorn,
+  ]
+}
+
+resource "helm_release" "cloudnative_pg" {
+  name       = "cnpg"
+  repository = "https://cloudnative-pg.github.io/charts"
+  chart      = "cloudnative-pg"
+  version    = "0.29.0"
+
+  create_namespace = true
+  namespace        = "cnpg-system"
+
+  set = [
+    {
+      name  = "config.clusterWide"
+      value = true
+    }
+  ]
+
+  depends_on = [
+    kubernetes_storage_class_v1.cnpg,
+  ]
+}
