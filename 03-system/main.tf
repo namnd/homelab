@@ -111,3 +111,13 @@ resource "helm_release" "cloudnative_pg" {
     kubernetes_storage_class_v1.cnpg,
   ]
 }
+
+resource "helm_release" "rabbitmq" {
+  name       = "rabbitmq"
+  repository = "https://namnd.github.io/helm-charts"
+  chart      = "rabbitmq-cluster-operator"
+  version    = "0.1.0"
+
+  create_namespace = true
+  namespace        = "rabbitmq-system"
+}
